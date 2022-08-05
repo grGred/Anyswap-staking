@@ -334,7 +334,7 @@ struct LockedBalance {
     uint end;
 }
 
-contract ve is IERC721, IERC721Metadata {
+contract VeFixed is IERC721, IERC721Metadata {
     enum DepositType {
         DEPOSIT_FOR_TYPE,
         CREATE_LOCK_TYPE,
@@ -823,7 +823,13 @@ contract ve is IERC721, IERC721Metadata {
         // initial_last_point is used for extrapolation to calculate block number
         // (approximately, for *At methods) and save them
         // as we cannot figure that out exactly from inside the contract
-        Point memory initial_last_point = last_point;
+        Point memory initial_last_point = Point({
+            bias: last_point.bias,
+            slope: last_point.slope,
+            ts: last_point.ts, blk:
+            last_point.blk
+        });
+
         uint block_slope = 0; // dblock/dt
         if (block.timestamp > last_point.ts) {
             block_slope = (MULTIPLIER * (block.number - last_point.blk)) / (block.timestamp - last_point.ts);
@@ -891,7 +897,7 @@ contract ve is IERC721, IERC721Metadata {
 
         // Record the changed point into history
         point_history[_epoch] = last_point;
-
+        
         console.log('---------');
         console.log('epoch: ',_epoch);
         console.log('blockNum:');

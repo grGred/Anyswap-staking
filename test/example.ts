@@ -1,7 +1,7 @@
 import { ethers, network, waffle } from 'hardhat';
 import { deployContractFixture } from './shared/fixtures';
 import { Wallet } from '@ethersproject/wallet';
-import {Ve, Reward, TestERC20, TestPointer} from '../typechain';
+import { Ve, Reward, TestERC20, TestPointer, VeFixed } from '../typechain';
 import Web3 from 'web3';
 import { expect } from 'chai';
 import { DEADLINE } from './shared/consts';
@@ -15,6 +15,8 @@ describe('Tests', () => {
     let token: TestERC20;
     let veNFT: Ve;
     let reward: Reward;
+    let veNFTFixed: VeFixed;
+    let rewardFixed: Reward;
     let testData: TestPointer;
 
     let loadFixture: ReturnType<typeof createFixtureLoader>;
@@ -25,7 +27,9 @@ describe('Tests', () => {
     });
 
     beforeEach('deploy fixture', async () => {
-        ({ veNFT, reward, token, testData } = await loadFixture(deployContractFixture));
+        ({ veNFT, veNFTFixed, reward, rewardFixed, token, testData } = await loadFixture(
+            deployContractFixture
+        ));
     });
 
     describe('#Tests', () => {
@@ -39,11 +43,11 @@ describe('Tests', () => {
 
                 // in second case y is not a pointer to x, it is a new independent variable
                 // if you change the variable y - variable x won't be changed
-                const data2 = await testData.testPointer1();
+                const data2 = await testData.testPointer2();
                 await expect(data2.b).to.be.equal(2);
             });
 
-            it('Should have rewards after witdhraw', async () => {
+            it('Rewards after withdraw disappears for expired locks', async () => {
                 let blockNum = await ethers.provider.getBlockNumber();
                 let block = await ethers.provider.getBlock(blockNum);
                 let timestamp = block.timestamp;
@@ -57,14 +61,44 @@ describe('Tests', () => {
                 await network.provider.send('evm_increaseTime', [Number(604800 * 3)]);
                 await network.provider.send('evm_mine');
 
+                console.log('--------------------------');
                 console.log('before burn');
-                // console.log('2: ', await reward.pendingReward(2, 0, 3));
+                // pending reward exits
+                console.log('2: ', await reward.pendingReward(2, 0, 3));
 
-                await veNFT.withdraw(1);
+                await veNFT.withdraw(1); // not only burn will break the logic. All the functions that create points
 
                 console.log('right after burn');
+                // pending reward disappeared
                 console.log('2: ', await reward.pendingReward(2, 0, 3));
             });
+
+            it.only('Should have rewards for expired locks', async () => {
+                let blockNum = await ethers.provider.getBlockNumber();
+                let block = await ethers.provider.getBlock(blockNum);
+                let timestamp = block.timestamp;
+
+                const week = 604800;
+                await reward.addEpochBatch(timestamp, week, 5, Web3.utils.toWei('5000', 'ether'));
+
+                await veNFT.create_lock(Web3.utils.toWei('10', 'ether'), 604800 * 2);
+                await veNFT.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
+
+                await network.provider.send('evm_increaseTime', [Number(604800 * 3)]);
+                await network.provider.send('evm_mine');
+
+                console.log('--------------------------');
+                console.log('before burn');
+                // pending reward exits
+                console.log('2: ', await reward.pendingReward(2, 0, 3));
+
+                await veNFT.withdraw(1); // not only burn will break the logic. All the functions that create points
+
+                console.log('right after burn');
+                // pending reward disappeared
+                console.log('2: ', await reward.pendingReward(2, 0, 3));
+            });
+
 
             // it('Should have rewards after witdhraw but with 3 tokens', async () => {
             //     let blockNum = await ethers.provider.getBlockNumber();
