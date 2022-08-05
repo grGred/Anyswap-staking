@@ -71,6 +71,7 @@ describe('Tests', () => {
 
                 console.log('right after burn');
                 // pending reward disappeared
+                // [] means there is none
                 console.log('2: ', await reward.pendingReward(2, 0, 3));
             });
 
@@ -97,6 +98,7 @@ describe('Tests', () => {
 
                 console.log('right after burn');
                 // pending reward disappeared
+                // [] means there is none
                 console.log('2: ', await reward.pendingReward(2, 0, 3));
             });
 
