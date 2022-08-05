@@ -866,7 +866,7 @@ contract ve is IERC721, IERC721Metadata {
                 }
                 console.log('---------');
                 console.log('epoch: ',_epoch);
-                console.log('blockNum:');
+                console.log('blockNum:'); // you can see there that for one block number there are multiple timestamps
                 console.logUint(point_history[_epoch].blk);
                 console.log('timestamp:');
                 console.logUint(point_history[_epoch].ts);

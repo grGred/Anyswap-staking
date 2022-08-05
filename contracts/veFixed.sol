@@ -823,6 +823,8 @@ contract VeFixed is IERC721, IERC721Metadata {
         // initial_last_point is used for extrapolation to calculate block number
         // (approximately, for *At methods) and save them
         // as we cannot figure that out exactly from inside the contract
+
+        // Copy all the data of last point
         Point memory initial_last_point = Point({
             bias: last_point.bias,
             slope: last_point.slope,

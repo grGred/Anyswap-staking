@@ -11,6 +11,8 @@ interface DeployContractFixture {
     rewardFixed: Reward;
     token: TestERC20;
     testData: TestPointer;
+    // testCheckpoints: DoubleCheckpoint;
+    // testCheckpointsFixed: DoubleCheckpoint;
 }
 
 export const deployContractFixture: Fixture<DeployContractFixture> = async function (
@@ -38,6 +40,7 @@ export const deployContractFixture: Fixture<DeployContractFixture> = async funct
     const rewardFixed = (await RewardFactory.deploy(veNFTFixed.address, token.address)) as Reward;
 
     await token.mint(reward.address, Web3.utils.toWei('100000000', 'ether')); // 100 mil
+    await token.mint(rewardFixed.address, Web3.utils.toWei('100000000', 'ether')); // 100 mil
     await token.approve(reward.address, Web3.utils.toWei('100000000', 'ether'));
 
     return {

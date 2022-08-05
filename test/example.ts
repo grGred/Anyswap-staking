@@ -47,6 +47,7 @@ describe('Tests', () => {
                 await expect(data2.b).to.be.equal(2);
             });
 
+            // use `it.only(...` to see output for a specific test case
             it('Rewards after withdraw disappears for expired locks', async () => {
                 let blockNum = await ethers.provider.getBlockNumber();
                 let block = await ethers.provider.getBlock(blockNum);
@@ -55,15 +56,15 @@ describe('Tests', () => {
                 const week = 604800;
                 await reward.addEpochBatch(timestamp, week, 5, Web3.utils.toWei('5000', 'ether'));
 
-                await veNFT.create_lock(Web3.utils.toWei('10', 'ether'), 604800 * 2);
+                await veNFT.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
                 await veNFT.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
 
                 await network.provider.send('evm_increaseTime', [Number(604800 * 3)]);
-                await network.provider.send('evm_mine');
+                await hre.network.provider.send('hardhat_mine', ['0x3e8']); // mine 1000 blocks
 
                 console.log('--------------------------');
                 console.log('before burn');
-                // pending reward exits
+                // pending reward exists
                 console.log('2: ', await reward.pendingReward(2, 0, 3));
 
                 await veNFT.withdraw(1); // not only burn will break the logic. All the functions that create points
@@ -73,7 +74,7 @@ describe('Tests', () => {
                 console.log('2: ', await reward.pendingReward(2, 0, 3));
             });
 
-            it.only('Should have rewards for expired locks', async () => {
+            it('Rewards after withdraw disappears for expired locks', async () => {
                 let blockNum = await ethers.provider.getBlockNumber();
                 let block = await ethers.provider.getBlock(blockNum);
                 let timestamp = block.timestamp;
@@ -81,15 +82,15 @@ describe('Tests', () => {
                 const week = 604800;
                 await reward.addEpochBatch(timestamp, week, 5, Web3.utils.toWei('5000', 'ether'));
 
-                await veNFT.create_lock(Web3.utils.toWei('10', 'ether'), 604800 * 2);
+                await veNFT.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
                 await veNFT.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
 
                 await network.provider.send('evm_increaseTime', [Number(604800 * 3)]);
-                await network.provider.send('evm_mine');
+                await hre.network.provider.send('hardhat_mine', ['0x3e8']); // mine 1000 blocks
 
                 console.log('--------------------------');
                 console.log('before burn');
-                // pending reward exits
+                // pending reward exists
                 console.log('2: ', await reward.pendingReward(2, 0, 3));
 
                 await veNFT.withdraw(1); // not only burn will break the logic. All the functions that create points
@@ -99,31 +100,108 @@ describe('Tests', () => {
                 console.log('2: ', await reward.pendingReward(2, 0, 3));
             });
 
+            it('Pending reward of active token decreases', async () => {
+                let blockNum = await ethers.provider.getBlockNumber();
+                let block = await ethers.provider.getBlock(blockNum);
+                let timestamp = block.timestamp;
 
-            // it('Should have rewards after witdhraw but with 3 tokens', async () => {
-            //     let blockNum = await ethers.provider.getBlockNumber();
-            //     let block = await ethers.provider.getBlock(blockNum);
-            //     let timestamp = block.timestamp;
-            //
-            //     const week = 604800;
-            //     await reward.addEpochBatch(
-            //         timestamp + 20,
-            //         week,
-            //         5,
-            //         Web3.utils.toWei('5000', 'ether')
-            //     );
-            //
-            //     await veNFT.create_lock(Web3.utils.toWei('10', 'ether'), 604800);
-            //     await veNFT.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
-            //     await veNFT.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
-            //
-            //     await network.provider.send('evm_increaseTime', [Number(604800)]);
-            //     await network.provider.send('evm_mine');
-            //
-            //     let amountBefore = await token.balanceOf(wallet.address);
-            //     await reward['claimReward(uint256,uint256,uint256)'](1, 0, 1);
-            //     console.log(Number(amountBefore) - Number(await token.balanceOf(wallet.address)));
-            // });
+                const week = 604800;
+                await reward.addEpochBatch(timestamp, week, 5, Web3.utils.toWei('5000', 'ether'));
+
+                await veNFT.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
+                await veNFT.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
+
+                await veNFT.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 10);
+                await veNFT.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 10);
+
+                await network.provider.send('evm_increaseTime', [Number(604800 * 7)]);
+                await hre.network.provider.send('hardhat_mine', ['0x3e8']); // mine 1000 blocks
+
+                console.log('--------------------------');
+                console.log('before burn');
+                // lets create common flow of exit, where a person claim his rewards first, and exit then
+                await reward['claimReward(uint256,uint256,uint256)'](1, 0, 4);
+
+                // reward distribution works correctly
+                console.log('2: ', await reward.pendingReward(3, 0, 4));
+
+                await veNFT.withdraw(1); // not only burn will break the logic. All the functions that create points
+
+                console.log('right after burn');
+                // pending reward of active token decreased
+                // before: 1958.164
+                console.log('2: ', await reward.pendingReward(3, 0, 4));
+                // after: 804.45 Decreased more than 2 times! than means that incorrect checkpoint broke nft voting power for all period of the stake!
+            });
+
+            it('FIX: Pending reward of active token shouldnt decrease', async () => {
+                let blockNum = await ethers.provider.getBlockNumber();
+                let block = await ethers.provider.getBlock(blockNum);
+                let timestamp = block.timestamp;
+
+                const week = 604800;
+                await rewardFixed.addEpochBatch(
+                    timestamp,
+                    week,
+                    5,
+                    Web3.utils.toWei('5000', 'ether')
+                );
+
+                await veNFTFixed.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
+                await veNFTFixed.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
+
+                await veNFTFixed.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 10);
+                await veNFTFixed.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 10);
+
+                await network.provider.send('evm_increaseTime', [Number(604800 * 7)]);
+                await hre.network.provider.send('hardhat_mine', ['0x3e8']); // mine 1000 blocks
+
+                console.log('--------------------------');
+                console.log('before burn');
+                // lets create common flow of exit, where a person claim his rewards first, and exit then
+                await rewardFixed['claimReward(uint256,uint256,uint256)'](1, 0, 4);
+                // reward distribution works correctly
+                console.log('2: ', await rewardFixed.pendingReward(3, 0, 4));
+
+                await veNFTFixed.withdraw(1); // not only burn will break the logic. All the functions that create points
+
+                console.log('right after burn');
+                // pending reward of active token decreased
+                // before: 1958.164
+                console.log('2: ', await rewardFixed.pendingReward(3, 0, 4));
+                // after: 804.45 Decreased more than 2 times! than means that incorrect checkpoint broke nft voting power for all period of the stake!
+            });
+
+            it('FIX: Should have rewards for expired locks', async () => {
+                let blockNum = await ethers.provider.getBlockNumber();
+                let block = await ethers.provider.getBlock(blockNum);
+                let timestamp = block.timestamp;
+
+                const week = 604800;
+                await rewardFixed.addEpochBatch(
+                    timestamp,
+                    week,
+                    5,
+                    Web3.utils.toWei('5000', 'ether')
+                );
+
+                await veNFTFixed.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
+                await veNFTFixed.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
+
+                await network.provider.send('evm_increaseTime', [Number(604800 * 3)]);
+                await hre.network.provider.send('hardhat_mine', ['0x3e8']); // mine 1000 blocks
+
+                console.log('--------------------------');
+                console.log('before burn');
+                // pending reward exits
+                console.log('2: ', await rewardFixed.pendingReward(2, 0, 3));
+
+                await veNFTFixed.withdraw(1);
+
+                console.log('right after burn');
+                // pending reward still exists
+                console.log('2: ', await rewardFixed.pendingReward(2, 0, 3));
+            });
         });
     });
 });
