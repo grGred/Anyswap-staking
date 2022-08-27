@@ -1,5 +1,9 @@
 # Anyswap-staking
 
+Previously audited by:
+[Blocksec](https://github.com/anyswap/Anyswap-Audit/blob/master/BlockSec/blocksec_audit_multichain_v1.0-signed.pdf)
+[Peckshield](https://github.com/grGred/solidly/blob/master/audits/e456a816-3802-4384-894c-825a4177245a.pdf)
+
 This is the bug on Multichain Staking (vote escrow contract). It is connected with calculation of voting power `at*` specific time and breaks amount of pending reward and in some cases even leads to loss of all unclaimed reward for a specific NFT, that's why I indetify it as critical.
 
 Since Multichain has multiple stakings on different chains and market is bearish it's very likely to happen that people will not interact with one of the contracts for more than a week. This bug is connected with Solidly too. 
