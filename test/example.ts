@@ -204,6 +204,24 @@ describe('Tests', () => {
                 // pending reward still exists
                 console.log('2: ', await rewardFixed.pendingReward(2, 0, 3));
             });
+
+            it.only('Merge nft bug', async () => {
+                await veNFT.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
+                await veNFT.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
+                await veNFT.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
+                await veNFT.create_lock(Web3.utils.toWei('1000', 'ether'), 604800 * 2);
+
+                console.log('before merge: ', (await veNFT.supply()).toString());
+
+                await veNFT.merge(2, 3);
+
+                console.log('right after merge: ', (await veNFT.supply()).toString());
+
+                console.log(
+                    'amount of tokens on the contract: ',
+                    (await token.balanceOf(veNFT.address)).toString()
+                );
+            });
         });
     });
 });
